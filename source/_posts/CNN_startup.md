@@ -5,9 +5,10 @@ tags: [AI, Deep learning, CNN]
 
 全连接神经网络最大问题是参数爆炸，容易影响计算速度和导致过拟合问题。而CNN则通过局部连接、权值共享等方法避免了这一难题。
 
+<!-- more -->
+
 ### CNN 一般架构
 ![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_startup%2Fcnn_struct.jpg?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2017-12-20T08%3A13%3A08Z%2F-1%2Fhost%2Ff5b2ebb781f1e557b33cf2299168e5377e053f3c2fd2fffa909ad73c8566b6f2)
-<!-- more -->
 
 ### 输入层
 CNN通过每层不同的网络结构，将上一层的输出转化为下一层输入。
