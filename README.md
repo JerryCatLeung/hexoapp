@@ -1,2 +1,1 @@
-# blackhole2
-true blackhole
+# hexoapp

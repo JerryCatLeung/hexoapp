@@ -1,0 +1,25 @@
+.DS_Store
+.idea/
+*.log
+*.iml
+*.swp
+*.swo
+*.bak
+db.json
+yarn.lock
+package-lock.json
+node_modules/
+public/*
+
+# Ignore unused verdors' files
+themes/next/source/lib/fancybox/*
+!themes/next/source/lib/fancybox/source/
+
+themes/next/source/lib/font-awesome/less/
+themes/next/source/lib/font-awesome/scss/
+
+themes/next/source/lib/ua-parser-js/*
+!themes/next/source/lib/ua-parser-js/dist/
+
+themes/next/source/lib/Han/*
+!themes/next/source/lib/Han/dist/
