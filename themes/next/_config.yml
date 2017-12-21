@@ -90,7 +90,7 @@ menu:
   tags: /tags/ || tags
   #schedule: /schedule/ || calendar
   #sitemap: /sitemap.xml || sitemap
-  #about: /about/ || user
+  about: /about/ || user
   #love: /love || heartbeat
 
 # Enable/Disable menu icons.
