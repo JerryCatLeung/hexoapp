@@ -90,7 +90,7 @@ menu:
   tags: /tags/ || tags
   #schedule: /schedule/ || calendar
   #sitemap: /sitemap.xml || sitemap
-  about: /about/ || user
+  #about: /about/ || user
   #love: /love || heartbeat
 
 # Enable/Disable menu icons.
@@ -802,4 +802,5 @@ js: js
 images: images
 
 # Theme version
-# version: 5.1.3
+version: 5
+#.1.3
