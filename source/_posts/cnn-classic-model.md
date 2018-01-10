@@ -1,25 +1,22 @@
 ---
-title: CNN-经典神经网络模型
+title: CNN经典神经网络模型
 date: 2018-01-02 19:08:03
 tags: [CNN, Deep learning]
 ---
 
 
-本文涉及以下CNN经典模型附paper链接，LeNet、AlexNet、VGGNet、GoogleNet、ResNet、RCNN、Fast R-CNN、Faster R-CNN、YOLO。
+本文涉及以下CNN经典模型，LeNet、AlexNet、VGGNet、GoogleNet、ResNet。下一篇涉及RCNN、Fast R-CNN、Faster R-CNN、YOLO。
 
 <!--more-->
 
-- LeNet (1998) [Gradient-based learning applied to document recognition](http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf)
-- AlexNet (2012) [Imagenet classification with deep convolutional neural networks](https://www.nvidia.cn/content/tesla/pdf/machine-learning/imagenet-classification-with-deep-convolutional-nn.pdf)
-- VGGNet (2014) [Very Deep Convolutional Networks for Large-Scale Image Recognition](https://arxiv.org/pdf/1409.1556)
-- GoogleNet (2014) [Going Deeper with Convolutions](https://arxiv.org/abs/1409.4842)
-- ResNet (2015) [Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
-- RCNN (2014) [Rich feature hierarchies for accurate object detection and semantic segmentation](https://arxiv.org/abs/1311.2524)
-- Fast R-CNN (2015) [Fast R-CNN](https://arxiv.org/abs/1504.08083)
-- Faster R-CNN (2016) [Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks](https://arxiv.org/abs/1506.01497)
-- YOLO (2016) [You Only Look Once: Unified, Real-Time Object Detection](https://arxiv.org/abs/1506.02640)
+- [LeNet - Gradient-based learning applied to document recognition](http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf) (1998)
+- [AlexNet - Imagenet classification with deep convolutional neural networks](https://www.nvidia.cn/content/tesla/pdf/machine-learning/imagenet-classification-with-deep-convolutional-nn.pdf) (2012)
+- [VGGNet - Very Deep Convolutional Networks for Large-Scale Image Recognition](https://arxiv.org/pdf/1409.1556) (2014)
+- [GoogleNet - Going Deeper with Convolutions](https://arxiv.org/abs/1409.4842) (2014)
+- [ResNet - Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385) (2015)
 
-本文要介绍的前几个模型都是ILSVRC竞赛历年的佼佼者，这里先来总览比较AlexNet、VGG、GoogLeNet、ResNet四个模型。见下表：
+
+本文要介绍的几个模型都是ILSVRC竞赛历年的佼佼者，这里先来总览比较AlexNet、VGG、GoogLeNet、ResNet四个模型。见下表：
 
 |模型| AlexNet | VGG | GoogleNet | ResNet|
 |---|---|---|---|---|
@@ -100,11 +97,12 @@ VGGNet论文中全部使用3x3的卷积核，通过不断加深网络来提升�
 对于较浅的网络，如网络A，可以直接使用随机数进行随机初始化，而对于比较深的网络，则使用前面已经训练好的较浅的网络中的参数值对其前几层的卷积层和最后的全连接层进行初始化。
 
 ## GoogLeNet
-[caffe的GoogleNet网络配置](https://github.com/BVLC/caffe/blob/master/models/bvlc_googlenet/deploy.prototxt)，直观上看GoogleNet是非常深的神经网络模型，本文介绍关于GoogleNet第一篇正式论文，习惯称为inception v1，GoogleNet的主要贡献：
+[caffe的GoogleNet网络配置](https://github.com/BVLC/caffe/blob/master/models/bvlc_googlenet/deploy.prototxt)，直观上看GoogleNet是非常深的神经网络模型，本文介绍关于GoogleNet的主要贡献：
 
 1. 提出Inception Architecture并对其优化
 2. 取消全连层
 3. 运用auxiliary classifiers加速网络converge
+4. 提出Batch Normalization
 
 **Inception Architecture**
 
@@ -128,3 +126,49 @@ VGGNet论文中全部使用3x3的卷积核，通过不断加深网络来提升�
 从上图就可以看出，网络的最后几层是avg pool、dropout、linear和softmax，没有看到fully connect的影子。现在取消全连层貌似是个大趋势，近两年的优秀大型神经网络都没有全连层，可能是全连层参数太多，网络深度增加了以后，难以接受吧
 
 **Auxiliary classifiers**
+
+梯度消散是所有深层网络的通病，往往训练到最后，网络最开始的几层就“训不动了”！于是Szegedy加入了auxiliary classifiers（简称AC），用于辅助训练，加速网络converge，如下图画红框部分：
+![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FGoogleNet_arch.jpeg?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-08T05%3A40%3A48Z%2F-1%2Fhost%2F83a987e195b2b9b2b3557cf03c959297f0721129234d36ad1cb3c86a7f5e5431)
+可以看到，作者在网络中间层加入了两个AC，这两个AC在训练的时候也跟着学习，同时把自己学习到的梯度反馈给网络，算上网络最后一层的梯度反馈，GoogleNet一共有3个“梯度提供商”，先不说这么做有没有问题，它确实提高了网络收敛的速度，因为梯度大了嘛。另外，GoogleNet在做inference的时候AC是要被摘掉的。
+
+**Batch Normalization**
+
+BN有很多神奇的特性，比如BN可以带来如下好处
+
+- 选择比较大的初始学习率，也可以选择较小的学习率一样都能得到比较快的收敛速度；
+- 忽略drop out、L2正则参数，采用BN算法后，你可以移除这两项参数。
+- 不需要LRN归一化层（局部响应归一化层由AlexNet中首次提出），因为BN本身就是一个归一化网络层。
+
+归一化的好处有哪些呢？一方面，神经网络学习的**本质**在于学习数据的分布，一旦训练数据分布和测试数据分布不同，那么网络的繁华能力大大降低；另外，我们知道每批训练数据的分布各不相同，网络的每次迭代都需要学习适应不同的分布，无形中影响了训练速度。
+
+**BN的本质原理**就是：在网络的每一层输入的时候，又插入了一个归一化层，也就是先做一个归一化处理，然后再进入网络的下一层。比如网络第三层输入数据X3(X3表示网络第三层的输入数据)把它归一化至：均值0、方差为1，然后再输入第三层计算，这样我们就可以解决前面所提到的“Internal Covariate Shift”的问题了。[keras代码实现：](http://keras-cn.readthedocs.io/en/latest/)
+
+	m = K.mean(X, axis=-1, keepdims=True)#计算均值  
+	std = K.std(X, axis=-1, keepdims=True)#计算标准差  
+	X_normed = (X - m) / (std + self.epsilon)#归一化  
+	out = self.gamma * X_normed + self.beta#重构变换  
+
+## ResNet
+ResNet在2015年大放异彩，在ImageNet的classification、detection、localization以及COCO的detection和segmentation上均斩获了第一名的成绩。
+
+ResNet最根本的动机就是解决所谓的“退化”问题，即当模型的层次加深时，错误率却提高了，如下图：
+![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_plain.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-08T07%3A49%3A55Z%2F-1%2Fhost%2F0bfbf1af5e7c3f726f2f76d0f9573f3b84589d7b1bbe557ef2265e0af52d2356)
+我们知道，在计算机视觉里，特征的“等级”随增网络深度的加深而变高，研究表明，网络的深度是实现好的效果的重要因素。然而梯度弥散/爆炸成为训练深层次的网络的障碍，导致无法收敛。
+有一些方法可以弥补，如归一初始化，各层输入归一化，使得可以收敛的网络的深度提升为原来的十倍。然而，虽然收敛了，但网络却开始退化了，即增加网络层数却导致更大的误差。
+
+而这个“退化”问题产生的原因归结于优化难题，当模型变复杂时，SGD的优化变得更加困难，导致了模型达不到好的学习效果。针对这个问题，作者提出了一个**残差块**(Residual Unit)的结构：
+![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_block.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-08T07%3A55%3A38Z%2F-1%2Fhost%2Fd2dc94c1d5b62c2d7121492998337adcac716a80af0642894e2155fa82655224)
+的确，通过在一个浅层网络基础上叠加y=x的层（称identity mappings，恒等映射），可以让网络随深度增加而不退化。这反映了多层非线性网络无法逼近恒等映射网络。
+
+但是，不退化不是我们的目的，我们希望有更好性能的网络。ResNet学习的是残差函数F(x) = H(x) - x, 这里如果F(x) = 0, 那么就是上面提到的恒等映射。事实上，ResNet是“shortcut connections”的在connections是在恒等映射下的特殊情况，它没有引入额外的参数和计算复杂度。 假如优化目标函数是逼近一个恒等映射, 而不是0映射， 那么学习找到对恒等映射的扰动会比重新学习一个映射函数要容易。ResNet相当于将学习目标改变了，不再是学习一个完整的输出H(x)，只是输出和输入的差别H(x)−x即残差。
+
+传统卷积层或全连接层在信息传递时，或多或少会存在信息丢失、损耗等问题。ResNet在某种程度上解决了这个问题，通过直接将输入信息绕道到输出，保护信息的完整性，整个网络则只需要学习输入、输出差别的那一部分，简化学习目标和难度。
+
+[参考](https://www.jianshu.com/p/e502e4b43e6d)Ryan Dahl的[tensorflow-resnet](https://github.com/ry/tensorflow-resnet)程序源码，按照Ryan Dahl实现的ResNet，画出了残差块内部网络的具体实现，这个是全网络中第一个残差块的前三层，输入的image大小为[batch_size,56,56,64]，输出大小为[batch_size,56,56,256]，如下图
+![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_RU.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-08T09%3A04%3A47Z%2F-1%2Fhost%2Fb45ff3012507cca1d160453f73d9c15f57ae79f40763362848461235088bd02c)
+
+##### 由于篇幅问题，有关[RCNN、Fast R-CNN、Faster R-CNN、YOLO的几个模型另开一篇](http://www.laphiler.com/2018/01/08/cnn-classic-model-objectdetection/)。
+
+
+
+
