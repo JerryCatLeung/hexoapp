@@ -44,13 +44,13 @@ tags: [CNN, Deep learning]
 
 下图是类似的网络结构，和cafe的不完全一样，可以帮忙理解结构。
 
-![Arch of LeNet-5](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FLeNet.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-02T12%3A31%3A07Z%2F-1%2Fhost%2Fdab6ce8ce33f1bb2c06afd5fc62fc991bcc814a71a7957b73490fdc31dd02184)
+![Arch of LeNet-5](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FLeNet.png@!laphiler)
 
 ## AlexNet
 2012年ImageNet比赛冠军的model，AlexNet以第一作者Alex命名。[cafe的网络配置在此处](https://github.com/BVLC/caffe/blob/master/models/bvlc_alexnet/deploy.prototxt)。
 废话不说，先上一张经典的AlexNet网络结构的半截图（仔细看下，图的上半部分好像被截断了）。
 
-![Arch of AlexNet](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FAlexNet.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-02T12%3A51%3A36Z%2F-1%2Fhost%2F4b029f787bdf5d1bd15da5f6652247e3d38d9c870e1078b0f3bf83a7d352fdf8)
+![Arch of AlexNet](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FAlexNet.png@!laphiler)
 AlexNet以Top-5的错误率为16.4%赢得ILSVRC 2012年的比赛。它做出了如下创新：
 
 - 首次使用ReLU作为CNN激活函数，解决了Sigmod激活函数的梯度弥散问题，关于激活函数可参考[上一篇激活函数部分](http://www.laphiler.com/2017/12/20/CNN_startup/)
@@ -61,7 +61,7 @@ AlexNet以Top-5的错误率为16.4%赢得ILSVRC 2012年的比赛。它做出了�
 - 数据增强，随机从256x256的原始图中截取224x224大小的区域，再做水平翻转，相当于增加了 (256−224)2×2=2048(256−224)2×2=2048 倍的数据量。仅靠原始的数据量，参数众多的CNN会陷入过拟合。预测时，取图片四个角和中间共5个位置，再加上翻转，共10个位置，对它们的预测结果求均值。
 
 **AlexNet结构图**（换个视角）
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FAlexNet_arch.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-03T08%3A43%3A20Z%2F-1%2Fhost%2Fd88f9621d1f6238555637b5f10122dc7b08c987c26e8888c99ed083bf6a517f2)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FAlexNet_arch.png@!laphiler)
 卷积神经网络的结构并不是各个层的简单组合，它是由一个个“模块”有机组成的，在模块内部，各个层的排列是有讲究的。比如AlexNet的结构图，它是由八个模块组成的。
 **模块1和模块2**是CNN的前面部分
 	
@@ -83,7 +83,7 @@ VGGNet可以看做是加深版的AlexNet，都是Conv Layer加FC Layer。
 VGGNet探索卷积神经网络**深度与性能**的关系，通过反复堆叠3x3的小型卷积核和2x2的最大池化层，VGGNet成功构筑了16～19层深的卷积神经网络，VGGNet取得ILSVRC 2014比赛分类项目的第2名和定位项目的第1名。同时VGGNet的拓展性很强，迁移到其他图片数据上的泛化性非常好。
 VGGNet论文中全部使用3x3的卷积核，通过不断加深网络来提升性能，表1表示为不同的**网络结构图**，表2表示每一级别的**参数量**。从11层的网络一直到19层的网络都有详尽的性能测试。
 
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FVGGNet.jpg?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-05T08%3A52%3A50Z%2F-1%2Fhost%2F19399a9e990c262d586d187cc435ac9ac2529083d5b20b747865d75b4237a797)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FVGGNet.jpg@!laphiler)
 
 **VGGNet特性**
 
@@ -108,27 +108,27 @@ VGGNet论文中全部使用3x3的卷积核，通过不断加深网络来提升�
 
 作者发现传统提高网络精度或性能的方法是一条邪路（P.S.传统方法指的是**扩大网络模型**或**增大训练数据集**），而想从本质上提高网络性能，就得用sparsely connected architectures，即“稀疏连接结构”。
 对IA，可以理解为用尽可能的“小”、“分散”的可堆叠的网络结构，去学习复杂的分类任务，如下图：
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FInception.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-05T12%3A29%3A51Z%2F-1%2Fhost%2F55336fc76f309bdb9da55bb513fd1cd792b1480b62319ace6a3b177a18714104)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FInception.png@!laphiler)
 原来造神经网络，都是一条线下来，我们可以回想一下AlexNet、VGG等著名网络，而IA是“分叉-汇聚”型网络，也就是说在一层网络中存在多个不同尺度的kernels，卷积完毕后再汇聚，为了更好理解，“汇聚”的tensorflow代码写出来是这样的：
 	
 	net = tf.concat(3, [branch1x1, branch5x5, branch3x3, branch_pool])
 
 这种网络结构会带来**参数爆炸**问题，所以在原机构基础上加入了kernels数量控制方式，就是那些1×1的卷积层，如下图：
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FInception2.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-05T12%3A36%3A38Z%2F-1%2Fhost%2F6c630dd782ce5050a1d2277c04a2214c8af9956fcdb457547f738b594e67980f)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FInception2.png@!laphiler)
 
 > IA之所以能提高网络精度，可能就是归功于它拥有多个不同尺度的kernels，每一个尺度的kernel会学习不同的特征，把这些不同kernels学习到的特征汇聚给下一层，能够更好的实现全方位的深度学习！
 
 **取消FC全连层**
 
 为什么VGG网络的参数那么多？就是因为它在最后有两个4096的全连层！Szegedy吸取了教训，为了压缩GoogLeNet的网络参数，他把全连层取消了！
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FGoogleNet_FC.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-05T12%3A40%3A35Z%2F-1%2Fhost%2F808e0e37a5ca8637c504df1b52e3bf9ee02c6a912e4bfb33eac397c8de31c6ca)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FGoogleNet_FC.png@!laphiler)
 
 从上图就可以看出，网络的最后几层是avg pool、dropout、linear和softmax，没有看到fully connect的影子。现在取消全连层貌似是个大趋势，近两年的优秀大型神经网络都没有全连层，可能是全连层参数太多，网络深度增加了以后，难以接受吧
 
 **Auxiliary classifiers**
 
 梯度消散是所有深层网络的通病，往往训练到最后，网络最开始的几层就“训不动了”！于是Szegedy加入了auxiliary classifiers（简称AC），用于辅助训练，加速网络converge，如下图画红框部分：
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FGoogleNet_arch.jpeg?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-08T05%3A40%3A48Z%2F-1%2Fhost%2F83a987e195b2b9b2b3557cf03c959297f0721129234d36ad1cb3c86a7f5e5431)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FGoogleNet_arch.jpeg@!laphiler)
 可以看到，作者在网络中间层加入了两个AC，这两个AC在训练的时候也跟着学习，同时把自己学习到的梯度反馈给网络，算上网络最后一层的梯度反馈，GoogleNet一共有3个“梯度提供商”，先不说这么做有没有问题，它确实提高了网络收敛的速度，因为梯度大了嘛。另外，GoogleNet在做inference的时候AC是要被摘掉的。
 
 **Batch Normalization**
@@ -152,12 +152,12 @@ BN有很多神奇的特性，比如BN可以带来如下好处
 ResNet在2015年大放异彩，在ImageNet的classification、detection、localization以及COCO的detection和segmentation上均斩获了第一名的成绩。
 
 ResNet最根本的动机就是解决所谓的“退化”问题，即当模型的层次加深时，错误率却提高了，如下图：
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_plain.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-08T07%3A49%3A55Z%2F-1%2Fhost%2F0bfbf1af5e7c3f726f2f76d0f9573f3b84589d7b1bbe557ef2265e0af52d2356)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_plain.png@!laphiler)
 我们知道，在计算机视觉里，特征的“等级”随增网络深度的加深而变高，研究表明，网络的深度是实现好的效果的重要因素。然而梯度弥散/爆炸成为训练深层次的网络的障碍，导致无法收敛。
 有一些方法可以弥补，如归一初始化，各层输入归一化，使得可以收敛的网络的深度提升为原来的十倍。然而，虽然收敛了，但网络却开始退化了，即增加网络层数却导致更大的误差。
 
 而这个“退化”问题产生的原因归结于优化难题，当模型变复杂时，SGD的优化变得更加困难，导致了模型达不到好的学习效果。针对这个问题，作者提出了一个**残差块**(Residual Unit)的结构：
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_block.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-08T07%3A55%3A38Z%2F-1%2Fhost%2Fd2dc94c1d5b62c2d7121492998337adcac716a80af0642894e2155fa82655224)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_block.png@!laphiler)
 的确，通过在一个浅层网络基础上叠加y=x的层（称identity mappings，恒等映射），可以让网络随深度增加而不退化。这反映了多层非线性网络无法逼近恒等映射网络。
 
 但是，不退化不是我们的目的，我们希望有更好性能的网络。ResNet学习的是残差函数F(x) = H(x) - x, 这里如果F(x) = 0, 那么就是上面提到的恒等映射。事实上，ResNet是“shortcut connections”的在connections是在恒等映射下的特殊情况，它没有引入额外的参数和计算复杂度。 假如优化目标函数是逼近一个恒等映射, 而不是0映射， 那么学习找到对恒等映射的扰动会比重新学习一个映射函数要容易。ResNet相当于将学习目标改变了，不再是学习一个完整的输出H(x)，只是输出和输入的差别H(x)−x即残差。
@@ -165,7 +165,7 @@ ResNet最根本的动机就是解决所谓的“退化”问题，即当模型�
 传统卷积层或全连接层在信息传递时，或多或少会存在信息丢失、损耗等问题。ResNet在某种程度上解决了这个问题，通过直接将输入信息绕道到输出，保护信息的完整性，整个网络则只需要学习输入、输出差别的那一部分，简化学习目标和难度。
 
 [参考](https://www.jianshu.com/p/e502e4b43e6d)Ryan Dahl的[tensorflow-resnet](https://github.com/ry/tensorflow-resnet)程序源码，按照Ryan Dahl实现的ResNet，画出了残差块内部网络的具体实现，这个是全网络中第一个残差块的前三层，输入的image大小为[batch_size,56,56,64]，输出大小为[batch_size,56,56,256]，如下图
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_RU.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-08T09%3A04%3A47Z%2F-1%2Fhost%2Fb45ff3012507cca1d160453f73d9c15f57ae79f40763362848461235088bd02c)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FResNet_RU.png@!laphiler)
 
 ##### 由于篇幅问题，有关[RCNN、Fast R-CNN、Faster R-CNN、YOLO的几个模型另开一篇](http://www.laphiler.com/2018/01/08/cnn-classic-model-objectdetection/)。
 

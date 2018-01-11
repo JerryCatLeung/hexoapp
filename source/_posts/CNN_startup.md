@@ -9,7 +9,7 @@ tags: [AI, Deep learning, CNN]
 <!-- more -->
 
 ### CNN 一般架构
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_startup%2Fcnn_struct.jpg?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2017-12-20T08%3A13%3A08Z%2F-1%2Fhost%2Ff5b2ebb781f1e557b33cf2299168e5377e053f3c2fd2fffa909ad73c8566b6f2)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_startup%2Fcnn_struct.jpg@!laphiler)
 
 ### 输入层
 CNN通过每层不同的网络结构，将上一层的输出转化为下一层输入。
@@ -29,7 +29,7 @@ CNN通过每层不同的网络结构，将上一层的输出转化为下一层�
 ##### 激活函数的作用
 首先激活函数并不是真的能激活什么，在神经网络中，激活函数的作用是能够给神经网络加入一些**非线性因素**，使得神经网络可以逼近基本上所有的函数，从而解决非常复杂的问题。例如在分类中，当数据集线性不可分时，就需要非线性激活函数来拟合出一条非线性函数，对样本数据进行分类。如下图：
 
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_startup%2Factivation_func.jpg?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-03T06%3A28%3A38Z%2F-1%2Fhost%2Fccb12ae2f7d66656791806ac974b63b53bdfa66cde593dab7e5c783239f7d33f)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_startup%2Factivation_func.jpg@!laphiler)
 
 ##### 激活函数的性质
 激活函数通常有如下一些性质：
@@ -46,7 +46,7 @@ CNN通过每层不同的网络结构，将上一层的输出转化为下一层�
 - tanh：控制在[-1, 1]
 - ReLU：控制在[0, 正无穷]
 
-![](http://xiaoluban.bj.bcebos.com/laphiler%2FCNN_startup%2FReLU.png?authorization=bce-auth-v1%2F94767b1b37b14a259abca0d493cefafa%2F2018-01-03T06%3A25%3A36Z%2F-1%2Fhost%2F7e0fb79fce6a170582799f1ad34df6baa4f9f89fa45c34e906db2f8b99625b75)
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_startup%2FReLU.png@!laphiler)
 
 数学公式：
 $$f(x) = max(0,x)$$
