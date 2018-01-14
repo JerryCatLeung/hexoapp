@@ -153,13 +153,44 @@ R-CNN在PASCAL VOC2007上的检测结果从DPM HSC的34.3%直接提升到了66%(
 
 ### ROI Pooling Layer
 
-首先需要介绍RCNN系列里的一个核心算法模块，即**ROI Pooling**(Regions of Interest)。我们知道在ImageNet数据上做图片分类的网络，一般都是先把图片crop、resize到固定的大小（i.e. 224*224），然后输入网络提取特征再进行分类，而对于检测任务这个方法显然并不适合，因为原始图像如果缩小到224这种分辨率，那么感兴趣对象可能都会变的太小无法辨认。RCNN的数据输入和SPPNet有点类似，并不对图片大小限制，而实现这一点的关键所在，就是ROI Pooling网络层，它可以在任意大小的图片feature map上针对输入的每一个ROI区域提取出固定维度的特征表示，保证后续对每个区域的后续分类能够正常进行。
+首先需要介绍RCNN系列里的一个核心算法模块，即**ROI Pooling**(Regions of Interest)。我们知道在ImageNet数据上做图片分类的网络，一般都是先把图片crop、resize到固定的大小（i.e. 224*224），然后输入网络提取特征再进行分类，而对于检测任务这个方法显然并不适合，因为原始图像如果缩小到224这种分辨率，那么感兴趣对象可能都会变的太小无法辨认。RCNN的数据输入和SPPNet有点类似，并不对图片大小限制，而实现这一点的关键所在，就是ROI Pooling网络层，它可以在任意大小的图片feature map上针对输入的每一个ROI区域提取出固定维度的特征表示，保证后续对每个区域的后续分类能够正常进行。如下GIF图是ROI pooling的过程：
+
+![](https://blog.deepsense.ai/wp-content/uploads/2017/02/roi_pooling-1.gif)
 
 
-### SSP Layer
+### SPP Layer
+
+CNN网络需要固定尺寸的图像输入，SPPNet将任意大小的图像池化生成固定长度的图像表示，提升R-CNN检测的速度24-102倍。[原文参考](http://blog.csdn.net/u011534057/article/details/51219959)
+固定图像尺寸输入的问题，截取的区域未涵盖整个目标或者缩放带来图像的扭曲。事实上，CNN的卷积层不需要固定尺寸的图像，全连接层是需要固定大小输入的，因此提出了SPP层放到卷积层的后面，改进后的网络如下图所示：
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Fspp-crop-warp.jpg@!laphiler)
+
+**SPP核心思想** 通过对feature map进行相应尺度的pooling，使得能pooling出4×4, 2×2, 1×1的feature map，再将这些feature map concat成列向量与下一层全链接层相连。这样就消除了输入尺度不一致的影响。
+
 
 ### 多任务损失函数(multi-task loss)
 
+上面已经讲到, Fast R-CNN 的一个优点是 end-to-end 的训练, 这一特点是通过 Multi-task Loss 来实现的.
+- 第一个 Loss 是用来训练bounding box 的类别的. 输出是一个离散的概率分布, 输出的节点个数是 {% math %} K+1 {% endmath %}, {% math %} p = (p_0,...,p_k) {% endmath %}，其中{% math %} K {% endmath %} 数据集中的类别数, {% math %} 1 {% endmath %} 是background。
+- 第二个 Loss 是用来训练 bounding box regression offset 的, {% math %} t^k = (t_x^k,t_y^k,t_w^k,t_h^k) {% endmath %}。
+- 每一个 RoI 都有两个 label, 一个是类别 {% math %} u {% endmath %}, 另外一个是 bounding box regression target {% math %} v {% endmath %}. 
+
+**Multi-task loss** 定义为:
+$$L(p,u,t^u,v) = L_{p,u} + \lambda[u≥1]L_loc(t^u,v)$$
+其中，{% math %} L_{p,u} = −logp_u {% endmath %}是针对 classify 的loss；
+{% math %} L_loc {% endmath %}是定义在一个四元组上面的 bounding box 的损失函数，对于类别 {% math %} u {% endmath %}, 其**ground truth** 的bounding box 为{% math %} v = (v_x,v_y,v_w,v_h) {% endmath %}, 其predict 得到的结果是{% math %} t^u = (t_x^u,t_y^u,t_w^u,t_h^u) {% endmath %}。
+针对bounding box regression 的loss 定义是:
+
+{% math %} L_loc(t^u,v)= \sum\limits_{i∈x,y,w,h}smooth_L1 (t_i^u-v_i) {% endmath %}
+
+在这里 
+
+{% math %}  \begin{eqnarray}\label{OQPSK} smooth_{L1}(x) =
+\begin{cases}
+0.5x^2, &if |x| < 1\cr
+|x| - 0.5, &otherwise
+\end{cases}
+\end{eqnarray}  {% endmath %}
 ### 模型
 
 ![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Ffastrcnn-arch.png@!laphiler)
