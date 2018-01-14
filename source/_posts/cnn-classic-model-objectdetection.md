@@ -55,16 +55,37 @@ tags: [AI, Deep learning, CNN, RCNN, Fast R-CNN, Faster R-CNN, YOLO, Object dete
 ![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Frcnn-arch.png@!laphiler)
 ### 训练流程：
 
-1. 输入测试图像
-2. 利用**selective search**算法在图像中提取1-2k个左右的region proposal（候选区）。
-3. 将每个region proposal缩放（warp）成227×227的大小并输入到CNN，将CNN的fc7层的输出作为特征。
-4. 将每个region proposal提取到的CNN特征输入到SVM进行分类。
+1. 输入测试图像；
+2. 利用**selective search**算法在图像中提取1-2k个左右的region proposal（候选区）；
+3. 将每个region proposal缩放（warp）成**227×227**的固定大小并输入到**CNN(AlexNet Input)**，将CNN的fc7层的输出作为特征，**得到每个region proposal的feature map**；
+4. 将每个region proposal提取到的CNN特征输入到SVM进行分类；
 5. **边框回归**（bounding-box regression)，边框回归是对region proposal进行纠正的线性回归算法，为了让region proposal提取到的窗口跟目标真实窗口更吻合。
 
 ### selective search
-总体思路:假设现在图像上有n个预分割的区域,表示为R={R1, R2, ..., Rn}, 计算每个region与它相邻region(注意是相邻的区域)的相似度,这样会得到一个n*n的相似度矩阵(同一个区域之间和一个区域与不相邻区域之间的相似度可设为NaN),从矩阵中找出最大相似度值对应的两个区域,将这两个区域合二为一,这时候图像上还剩下n-1个区域; 重复上面的过程(只需要计算新的区域与它相邻区域的新相似度,其他的不用重复计算),重复一次,区域的总数目就少1,知道最后所有的区域都合并称为了同一个区域(即此过程进行了n-1次,区域总数目最后变成了1).算法的流程图如下图所示:
+**总体思路**:假设现在图像上有n个预分割的区域,表示为R={R1, R2, ..., Rn}, 计算每个region与它相邻region(注意是相邻的区域)的相似度,这样会得到一个n*n的相似度矩阵(同一个区域之间和一个区域与不相邻区域之间的相似度可设为NaN),从矩阵中找出最大相似度值对应的两个区域,将这两个区域合二为一,这时候图像上还剩下n-1个区域; 重复上面的过程(只需要计算新的区域与它相邻区域的新相似度,其他的不用重复计算),重复一次,区域的总数目就少1,知道最后所有的区域都合并称为了同一个区域(即此过程进行了n-1次,区域总数目最后变成了1).算法的流程图如下图。
+
+**合并规则**:
+
+- 颜色（颜色直方图）相近的 
+- 纹理（梯度直方图）相近的 
+- 合并后总面积小的： 保证合并操作的尺度较为均匀，避免一个大区域陆续“吃掉”其他小区域 （例：设有区域a-b-c-d-e-f-g-h。较好的合并方式是：ab-cd-ef-gh -> abcd-efgh -> abcdefgh。 不好的合并方法是：ab-c-d-e-f-g-h ->abcd-e-f-g-h ->abcdef-gh -> abcdefgh）
+- 合并后，总面积在其BBOX中所占比例大的： 保证合并后形状规则。
 
 ![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Fselective_search_ch.png@!laphiler)
+
+### 非极大值抑制（NMS）
+
+RCNN会从一张图片中找出n个可能是物体的矩形框，然后为每个矩形框为做类别分类概率：
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Frcnn-rms.jpg@!laphiler)
+
+就像上面的图片一样，定位一个车辆，最后算法就找出了一堆的方框，我们需要判别哪些矩形框是没用的。非极大值抑制的方法是：先假设有6个矩形框，根据分类器的类别分类概率做排序，假设从小到大属于车辆的概率 分别为A、B、C、D、E、F。
+
+- 从最大概率矩形框F开始，分别判断A~E与F的重叠度IOU是否大于某个设定的阈值;
+- 假设B、D与F的重叠度超过阈值，那么就扔掉B、D；并标记第一个矩形框F，是我们保留下来的。
+- 从剩下的矩形框A、C、E中，选择概率最大的E，然后判断E与A、C的重叠度，重叠度大于一定的阈值，那么就扔掉；并标记E是我们保留下来的第二个矩形框。
+
+就这样一直重复，找到所有被保留下来的矩形框。
 
 ### 边框回归（bounding-box regression)
 ![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Fbboxing-r.png@!laphiler)
@@ -95,34 +116,49 @@ tags: [AI, Deep learning, CNN, RCNN, Fast R-CNN, Faster R-CNN, YOLO, Object dete
 #### fine-tuning阶段
 我们接着采用selective search 搜索出来的候选框，然后处理到指定大小图片，继续对上面预训练的cnn模型进行fine-tuning训练。假设要检测的物体类别有N类，那么我们就需要把上面预训练阶段的CNN模型的最后一层给替换掉，替换成N+1个输出的神经元(加1，表示还有一个背景)，然后这一层直接采用参数随机初始化的方法，其它网络层的参数不变；接着就可以开始继续SGD训练了。开始的时候，SGD学习率选择0.001，在每次训练的时候，我们batch size大小选择128，其中32个正样本、96个负样本。
 
-### 小结
+### 训练阶段
+
+- **有监督预训练**： 作者使用caffe框架利用ILSVRC 2012的数据集（ImageNet）对网络模型进行了训练，使网络模型中的参数都是经过训练过的参数，而不是刚开始那样随机初始化的参数；
+- **特定领域的fine-tuning**：为了适应不同场合的识别需要，如VOC，对网络继续使用从VOC图片集上对region proposals归一化后的图片进行训练。网络只需要将最后的1000类的分类层换成21类的分类层（20个VOC中的类别和1个背景类），其他都不需要变。为了保证训练只是对网络的微调而不是大幅度的变化，网络的学习率只设置成了0.001。计算每个region proposal与人工标注的框的IoU，IoU重叠阈值设为0.5，大于这个阈值的作为正样本，其他的作为负样本，然后在训练的每一次迭代中都使用32个正样本（包括所有类别）和96个背景样本组成的128张图片的batch进行训练（这么做的主要原因还是正样本图片太少了）；
+- **特定类别的分类器**：对每个类都训练一个线性的SVM分类器，训练SVM需要正负样本文件，可以想象得到，刚好包含某一类物体的region proposal应该是正样本，完全不包含的region proposal应该是负样本，但是对于部分包含某一类物体的region proposal该如何训练呢，作者同样是使用IoU阈值的方法，这次的阈值为0.3，计算每一个region proposal与标准框的IoU，大于这个阈值的作为正样本，小于的作为负样本。由于训练样本比较大，作者使用了standard hard negative mining method（具体reference to hard negative mining of my blog）来训练分类器。作者表示在补充材料中讨论了为什么fine-tuning和训练SVM时所用的正负样本标准不一样（0.5和0.3），以及为什么不直接用卷积神经网络的输出来分类而要单独训练SVM来分类(see the folowing bolg, and it will make it done) 。
+
+### 测试阶段
+
+- 使用selective search的方法在测试图片上提取2000个region propasals ，将每个region proposals归一化到227x227，然后再CNN中正向传播，将最后一层得到的特征提取出来。然后对于每一个类别，使用为这一类训练的SVM分类器对提取的特征向量进行打分，得到测试图片中对于所有region proposals的对于这一类的分数，再使用贪心的非极大值抑制去除相交的多余的框。
+- 非极大值抑制（NMS）先计算出每一个bounding box的面积，然后根据score进行排序，把score最大的bounding box作为选定的框，计算其余bounding box与当前最大score与box的IoU，去除IoU大于设定的阈值的bounding box。然后重复上面的过程，直至候选bounding box为空，然后再将score小于一定阈值的选定框删除得到一类的结果。作者提到花费在region propasals和提取特征的时间是13s/张-GPU和53s/张-CPU，可以看出时间还是很长的，不能够达到及时性。
+
+### R-CNN小结
+
 ![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Frcnn-mAP.jpg@!laphiler)
 
-R-CNN在PASCAL VOC2007上的检测结果从DPM HSC的34.3%直接提升到了66%(mAP)。如此大的提升使我们看到了region proposal+CNN的巨大优势。 但是R-CNN框架也存在着很多问题:
+R-CNN在PASCAL VOC2007上的检测结果从DPM HSC的34.3%直接提升到了66%(mAP)。如此大的提升使我们看到了region proposal+CNN的巨大优势。 但是R-CNN框架也存在着很多问题；
+
+因为rcnn首先需要在AlexNet上进行分类的训练model，得到AlexNet之后才能进行分类(Pretrained procedure->SoftMax2SVM)。分类之后在改一下AxlexNet model （fc: 1000->21）得到detection model（training）->(testing)；
+
+然后在上面利用SVM进行二分类判断当前的region有没有包含我们需要的物体(对结果进行排序，取前面的IOU最大的那几个(nms)),在对这些进行canny边缘检测，才可以得到bounding-box(then B-BoxRegression)。总结一下：[参考](http://blog.csdn.net/u011534057/article/category/6178027)
 
 1. 训练分为多个阶段，步骤繁琐: 微调网络+训练SVM+训练边框回归器
 2. 训练耗时，占用磁盘空间大：5000张图像产生几百G的特征文件
 3. 速度慢: 使用GPU, VGG16模型处理一张图像需要47s。
 
-针对速度慢的这个问题，SPP-NET给出了很好的解决方案。
-
-## SPP-NET (ECCV2014, TPAMI2015)
-(Spatial Pyramid Pooling in Deep Convolutional Networks for Visual Recognition)
-**R-CNN**：检测速度慢，对图像提完region proposal（2k左右）之后将每个proposal当成一张图像进行后续处理(CNN提特征+SVM分类)，实际上对一张图像进行了2000次提特征和分类的过程！
-对图像提一次卷积层特征，然后将region proposal在原图的位置映射到卷积层特征图上，这样对于一张图像我们只需要提一次卷积层特征，然后将每个region proposal的卷积层特征输入到全连接层做后续操作。
-**小结**：使用SPP-NET相比于R-CNN可以大大加快目标检测的速度，但是依然存在着很多问题：
-
-训练分为多个阶段，步骤繁琐: 微调网络+训练SVM+训练边框回归器
-SPP-NET在微调网络的时候固定了卷积层，只对全连接层进行微调，而对于一个新的任务，有必要对卷积层也进行微调。（分类的模型提取的特征更注重高层语义，而目标检测任务除了语义信息还需要目标的位置信息）
-针对这两个问题，RBG又提出Fast R-CNN, 一个精简而快速的目标检测框架。
+针对以上问题，RBG又提出Fast R-CNN, 一个精简而快速的目标检测框架。
 
 ## Fast R-CNN(ICCV2015)
 
 ### Fast R-CNN的三个进步
 
-- 最后一个卷积层后加了一个ROI pooling layer。ROI pooling layer首先可以将image中的ROI定位到feature map，然后是用一个单层的SPP layer将这个feature map patch池化为固定大小的feature之后再传入全连接层。ROI pooling layer实际上是SPP-NET的一个精简版。
+- 最后一个卷积层后加了一个**ROI**(Regions of Interest) pooling layer。ROI pooling layer首先可以将image中的ROI定位到feature map，然后是用一个单层的SPP layer将这个feature map patch池化为固定大小的feature vector之后再传入全连接层。ROI pooling layer实际上是SPP-NET的一个精简版。
 - 损失函数使用了多任务损失函数(multi-task loss)，将边框回归直接加入到CNN网络中训练。
 - 将深度网络和后面的SVM分类两个阶段整合到一起，使用一个新的网络直接做分类和回归。用softmax 代替 svm 分类，用多目标损失函数加入候选框回归，除 region proposal 提取外实现了 end-to-end
+
+### ROI Pooling Layer
+
+首先需要介绍RCNN系列里的一个核心算法模块，即**ROI Pooling**(Regions of Interest)。我们知道在ImageNet数据上做图片分类的网络，一般都是先把图片crop、resize到固定的大小（i.e. 224*224），然后输入网络提取特征再进行分类，而对于检测任务这个方法显然并不适合，因为原始图像如果缩小到224这种分辨率，那么感兴趣对象可能都会变的太小无法辨认。RCNN的数据输入和SPPNet有点类似，并不对图片大小限制，而实现这一点的关键所在，就是ROI Pooling网络层，它可以在任意大小的图片feature map上针对输入的每一个ROI区域提取出固定维度的特征表示，保证后续对每个区域的后续分类能够正常进行。
+
+
+### SSP Layer
+
+### 多任务损失函数(multi-task loss)
 
 ### 模型
 
@@ -132,7 +168,7 @@ SPP-NET在微调网络的时候固定了卷积层，只对全连接层进行微�
 
 注意： 对中间的Conv feature map进行特征提取。每一个区域经过RoI pooling layer和FC layers得到一个 固定长度 的feature vector(这里需要注意的是，输入到后面RoI pooling layer的feature map是在Conv feature map上提取的，故整个特征提取过程，只计算了一次卷积。虽然在最开始也提取出了大量的RoI，但他们还是作为整体输入进卷积网络的，最开始提取出的RoI区域只是为了最后的Bounding box 回归时使用，用来输出原图中的位置)。
 
-#### 位置 + 类别联合学习
+#### 位置 + 分类联合学习
 
 图片 => cnn feature map计算 => proposal应用 => feature map相应区域做 region pooling 得到固定大小的 feature map => classification & regression
 用 softmax 代替 svm 分类，使用多任务损失函数(multi-task loss)，将候选框回归直接加入到 cnn 网络中训练，除去 region proposal 的提取阶段，这样的训练过程是**端到端**的(end-to-end)，整个网络的训练和测试十分方便
