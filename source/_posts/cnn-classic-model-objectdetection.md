@@ -62,7 +62,7 @@ tags: [AI, Deep learning, CNN, RCNN, Fast R-CNN, Faster R-CNN, YOLO, Object dete
 5. **边框回归**（bounding-box regression)，边框回归是对region proposal进行纠正的线性回归算法，为了让region proposal提取到的窗口跟目标真实窗口更吻合。
 
 ### selective search
-**总体思路**:假设现在图像上有n个预分割的区域,表示为R={R1, R2, ..., Rn}, 计算每个region与它相邻region(注意是相邻的区域)的相似度,这样会得到一个n*n的相似度矩阵(同一个区域之间和一个区域与不相邻区域之间的相似度可设为NaN),从矩阵中找出最大相似度值对应的两个区域,将这两个区域合二为一,这时候图像上还剩下n-1个区域; 重复上面的过程(只需要计算新的区域与它相邻区域的新相似度,其他的不用重复计算),重复一次,区域的总数目就少1,知道最后所有的区域都合并称为了同一个区域(即此过程进行了n-1次,区域总数目最后变成了1).算法的流程图如下图。
+**总体思路**:假设现在图像上有n个预分割的区域,表示为R={R1, R2, ..., Rn}, 计算每个region与它相邻region(注意是相邻的区域)的相似度,这样会得到一个n*n的相似度矩阵(同一个区域之间和一个区域与不相邻区域之间的相似度可设为NaN),从矩阵中找出最大相似度值对应的两个区域,将这两个区域合二为一,这时候图像上还剩下n-1个区域; 重复上面的过程(只需要计算新的区域与它相邻区域的新相似度,其他的不用重复计算),重复一次,区域的总数目就少1,知道最后所有的区域都合并称为了同一个区域(即此过程进行了n-1次,区域总数目最后变成了1).算法的流程图如下图。[参考文章](https://zhuanlan.zhihu.com/p/21412911)
 
 **合并规则**:
 
@@ -141,7 +141,36 @@ R-CNN在PASCAL VOC2007上的检测结果从DPM HSC的34.3%直接提升到了66%(
 2. 训练耗时，占用磁盘空间大：5000张图像产生几百G的特征文件
 3. 速度慢: 使用GPU, VGG16模型处理一张图像需要47s。
 
-针对以上问题，RBG又提出Fast R-CNN, 一个精简而快速的目标检测框架。
+针对以上问题，RBG在SPP-NET的基础上又提出Fast R-CNN, 一个精简而快速的目标检测框架。
+
+### SPP-NET
+
+何恺明研究员于14年撰写的论文，主要是把经典的Spatial Pyramid Pooling结构引入CNN中，从而使CNN可以处理任意size和scale的图片；这中方法不仅提升了分类的准确率，而且还非常适合Detection，比经典的RNN快速准确。
+
+CNN网络需要固定尺寸的图像输入，SPPNet将任意大小的图像池化生成固定长度的图像表示，提升R-CNN检测的速度24-102倍。[原文参考](http://blog.csdn.net/u011534057/article/details/51219959)
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Fspp-crop-warp.jpg@!laphiler)
+
+下图是RCNN和SPP-NET的对比，RCNN需要对2000个图片候选区域做2000次卷积，SPP-NET只需要一次全图的卷积，在conv5输出的feature map上做spp pooling，他们效率的本质差别就在这里。
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Frcnn-vs-spp.png@!laphiler)
+
+**SPP核心思想** 下图的空间金字塔池化层是SPPNet的核心，其主要目的是对于任意尺寸的输入产生固定大小的输出。思路是对于任意大小的feature map首先分成16、4、1个块，然后在每个块上最大池化，池化后的特征拼接得到一个固定维度的输出。以满足全连接层的需要。这样就消除了输入尺度不一致的影响。
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Fspp-net-all.jpg@!laphiler)
+
+如上图所示，当我们输入一张图片的时候，我们利用不同大小的刻度，对一张图片进行了划分。上面示意图中，利用了三种不同大小的刻度，对一张输入的图片进行了划分，最后总共可以得到16+4+1=21个块，我们即将从这21个块中，每个块提取出一个特征，这样刚好就是我们要提取的21维特征向量。
+
+- 第一张图片,我们把一张完整的图片，分成了16个块，也就是每个块的大小就是(w/4,h/4);
+- 第二张图片，划分了4个块，每个块的大小就是(w/2,h/2);
+- 第三张图片，把一整张图片作为了一个块，也就是块的大小为(w,h)
+
+空间金字塔最大池化的过程，其实就是从这21个图片块中，分别计算每个块的最大值，从而得到一个输出神经元。最后把一张任意大小的图片转换成了一个固定大小的21维特征（当然你可以设计其它维数的输出，增加金字塔的层数，或者改变划分网格的大小）。
+
+**上面的三种不同刻度的划分**，每一种刻度我们称之为：金字塔的一层，每一个图片块大小我们称之为：windows size了。如果你希望，金字塔的某一层输出n*n个特征，那么你就要用windows size大小为：(w/n,h/n)进行池化了
+
+当我们有很多层网络的时候，当网络输入的是一张任意大小的图片，这个时候我们可以一直进行卷积、池化，直到网络的倒数几层的时候，也就是我们即将与全连接层连接的时候，就要使用金字塔池化，使得任意大小的特征图都能够转换成固定大小的特征向量，这就是空间金字塔池化的奥义（多尺度特征提取出固定大小的特征向量）
+
 
 ## Fast R-CNN(ICCV2015)
 
@@ -151,21 +180,12 @@ R-CNN在PASCAL VOC2007上的检测结果从DPM HSC的34.3%直接提升到了66%(
 - 损失函数使用了多任务损失函数(multi-task loss)，将边框回归直接加入到CNN网络中训练。
 - 将深度网络和后面的SVM分类两个阶段整合到一起，使用一个新的网络直接做分类和回归。用softmax 代替 svm 分类，用多目标损失函数加入候选框回归，除 region proposal 提取外实现了 end-to-end
 
+
 ### ROI Pooling Layer
 
-首先需要介绍RCNN系列里的一个核心算法模块，即**ROI Pooling**(Regions of Interest)。我们知道在ImageNet数据上做图片分类的网络，一般都是先把图片crop、resize到固定的大小（i.e. 224*224），然后输入网络提取特征再进行分类，而对于检测任务这个方法显然并不适合，因为原始图像如果缩小到224这种分辨率，那么感兴趣对象可能都会变的太小无法辨认。RCNN的数据输入和SPPNet有点类似，并不对图片大小限制，而实现这一点的关键所在，就是ROI Pooling网络层，它可以在任意大小的图片feature map上针对输入的每一个ROI区域提取出固定维度的特征表示，保证后续对每个区域的后续分类能够正常进行。如下GIF图是ROI pooling的过程：
+首先需要介绍系列里的一个核心算法模块，即**ROI Pooling**(Regions of Interest)。我们知道在ImageNet数据上做图片分类的网络，一般都是先把图片crop、resize到固定的大小（i.e. 224*224），然后输入网络提取特征再进行分类，而对于检测任务这个方法显然并不适合，因为原始图像如果缩小到224这种分辨率，那么感兴趣对象可能都会变的太小无法辨认。ROI Pooling Layer，**它实际上就是上面提到的 SPP-NET 的一个精简版**，它可以在任意大小的图片feature map上针对输入的每一个ROI区域提取出固定维度的特征表示，保证后续对每个区域的后续分类能够正常进行。如下GIF图是ROI pooling的过程：
 
 ![](https://blog.deepsense.ai/wp-content/uploads/2017/02/roi_pooling-1.gif)
-
-
-### SPP Layer
-
-CNN网络需要固定尺寸的图像输入，SPPNet将任意大小的图像池化生成固定长度的图像表示，提升R-CNN检测的速度24-102倍。[原文参考](http://blog.csdn.net/u011534057/article/details/51219959)
-固定图像尺寸输入的问题，截取的区域未涵盖整个目标或者缩放带来图像的扭曲。事实上，CNN的卷积层不需要固定尺寸的图像，全连接层是需要固定大小输入的，因此提出了SPP层放到卷积层的后面，改进后的网络如下图所示：
-
-![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Fspp-crop-warp.jpg@!laphiler)
-
-**SPP核心思想** 通过对feature map进行相应尺度的pooling，使得能pooling出4×4, 2×2, 1×1的feature map，再将这些feature map concat成列向量与下一层全链接层相连。这样就消除了输入尺度不一致的影响。
 
 
 ### 多任务损失函数(multi-task loss)
@@ -191,6 +211,7 @@ $$L(p,u,t^u,v) = L_{p,u} + \lambda[u≥1]L_loc(t^u,v)$$
 |x| - 0.5, &otherwise
 \end{cases}
 \end{eqnarray}  {% endmath %}
+
 ### 模型
 
 ![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Ffastrcnn-arch.png@!laphiler)
@@ -214,9 +235,63 @@ $$L(p,u,t^u,v) = L_{p,u} + \lambda[u≥1]L_loc(t^u,v)$$
 
 ## Faster R-CNN(NIPS2015)
 
-Faster R-CNN统一的网络结构如下图所示，可以简单看作RPN网络+Fast R-CNN网络。
+从RCNN到Fast RCNN，再到Faster RCNN，目标检测的四个基本步骤（候选区域生成，特征提取，分类，位置精修）终于被统一到一个深度网络框架之内。所有计算没有重复，完全在GPU中完成，大大提高了运行速度。 
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Frcnns-list.png@!laphiler)
 
+Faster R-CNN统一的网络结构如下图所示，可以简单看作**区域生成网络(RPN region proposal network)**网络+Fast R-CNN网络。用RPN网络代替Fast RCNN中的Selective Search方法。本篇论文着重解决了这个系统中的三个问题： [参考1](http://blog.csdn.net/shenxiaolu1984/article/details/51152614) [参考2](https://zhuanlan.zhihu.com/p/24916624)
 
+1. 如何设计区域生成网络 
+2. 如何训练区域生成网络 
+3. 如何让区域生成网络和fast RCNN网络共享特征提取网络
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Ffasterrcnn-arch.png@!laphiler)
+
+**RPN的核心思想**是使用卷积神经网络直接产生region proposal，**即从feature map逆向找region proposal**，使用的方法本质上就是滑动窗口。RPN的设计比较巧妙，**RPN只需在最后的卷积层上滑动一遍**，因为anchor机制和边框回归可以得到多尺度多长宽比的region proposal。
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2FRPN.png@!laphiler)
+
+上边的**RPN网络结构图**（使用了ZF模型）,
+
+- 给定输入图像（假设分辨率为600*1000）
+- 经过卷积操作得到最后一层的卷积特征图（大小约为40*60)
+- 在这个特征图上使用3x3的卷积核（滑动窗口）与特征图进行卷积，最后一层卷积层共有256个feature map，那么这个3x3的区域卷积后可以获得一个256维的特征向量。
+- 边接cls layer和reg layer分别用于分类和边框回归
+- **计算anchor**：把每个特征点映射回映射回原图的感受野的中心点当成一个基准点，然后围绕这个基准点选取k个不同scale、aspect ratio的anchor。论文中3个scale（三种面积{% math %} (128^2,256^2,521^2) {% endmath %}），3个aspect ratio长宽比( {% math %} (1:1,1:2,2:1) {% endmath %} )
+
+- 对于这个40x60的feature map，总共有约20000(40x60x9)个anchor，也就是预测20000个region proposal。
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Fanchor.png@!laphiler)
+
+**关于正负样本的划分**：考察训练集中的每张图像（含有人工标定的ground true box）的所有anchor（N * M * k）
+
+- a. 对每个标定的ground true box区域，与其重叠比例最大的anchor记为 正样本 (保证每个ground true 至少对应一个正样本anchor)
+- b. 对a)剩余的anchor，如果其与某个标定区域重叠比例大于0.7，记为正样本（每个ground true box可能会对应多个正样本anchor。但每个正样本anchor 只可能对应一个grand true box）；如果其与任意一个标定的重叠比例都小于0.3，记为负样本。
+- c. 对a),b)剩余的anchor，弃去不用。
+- d. 跨越图像边界的anchor弃去不用
+
+**定义损失函数**
+损失函数沿用fast r-cnn的损失函数。
+
+**训练**：
+正负样本的选择，文中提到如果对每幅图的所有anchor都去优化loss function，那么最终会因为负样本过多导致最终得到的模型对正样本预测准确率很低。因此 在每幅图像中随机采样256个anchors去参与计算一次mini-batch的损失。正负比例1:1(如果正样本少于128则补充采样负样本)
+
+**Sharing Features for RPN and Fast R-CNN**
+我们知道，如果是分别训练两种不同任务的网络模型，即使它们的结构、参数完全一致，但各自的卷积层内的卷积核也会向着不同的方向改变，导致无法共享网络权重，论文作者提出了三种可能的方式：
+
+- **Alternating training**：此方法其实就是一个不断迭代的训练过程，既然分别训练RPN和Fast-RCNN可能让网络朝不同的方向收敛，a)那么我们可以先独立训练RPN，然后用这个RPN的网络权重对Fast-RCNN网络进行初始化并且用之前RPN输出proposal作为此时Fast-RCNN的输入训练Fast R-CNN。b) 用Fast R-CNN的网络参数去初始化RPN。之后不断迭代这个过程，即循环训练RPN、Fast-RCNN。
+- **Approximate joint training**：这里与前一种方法不同，不再是串行训练RPN和Fast-RCNN，而是尝试把二者融入到一个网络内，具体融合的网络结构如下图所示，可以看到，proposals是由中间的RPN层输出的，而不是从网络外部得到。需要注意的一点，名字中的"approximate"是因为反向传播阶段RPN产生的cls score能够获得梯度用以更新参数，但是proposal的坐标预测则直接把梯度舍弃了，这个设置可以使backward时该网络层能得到一个解析解（closed results），并且相对于Alternating traing减少了25-50%的训练时间。
+- **Approximate joint training**：这里与前一种方法不同，不再是串行训练RPN和Fast-RCNN，而是尝试把二者融入到一个网络内，具体融合的网络结构如下图所示，可以看到，proposals是由中间的RPN层输出的，而不是从网络外部得到。需要注意的一点，名字中的"approximate"是因为反向传播阶段RPN产生的cls score能够获得梯度用以更新参数，但是proposal的坐标预测则直接把梯度舍弃了，这个设置可以使backward时该网络层能得到一个解析解（closed results），并且相对于Alternating traing减少了25-50%的训练时间。
+
+上面说完了三种可能的训练方法，可非常神奇的是作者发布的源代码里却用了另外一种叫做4-Step Alternating Training的方法，思路和迭代的Alternating training有点类似，但是细节有点差别：
+
+- 第一步：用ImageNet模型初始化，独立训练一个RPN网络；
+- 第二步：仍然用ImageNet模型初始化，但是使用上一步RPN网络产生的proposal作为输入，训练一个Fast-RCNN网络，至此，两个网络每一层的参数完全不共享；
+- 第三步：使用第二步的Fast-RCNN网络参数初始化一个新的RPN网络，但是把RPN、Fast-RCNN共享的那些卷积层的learning rate设置为0，也就是不更新，仅仅更新RPN特有的那些网络层，重新训练，此时，两个网络已经共享了所有公共的卷积层；
+- 第四步：仍然固定共享的那些网络层，把Fast-RCNN特有的网络层也加入进来，形成一个unified network，继续训练，fine tune Fast-RCNN特有的网络层，此时，该网络已经实现我们设想的目标，即网络内部预测proposal并实现检测的功能。
+
+## 小结
+
+以上介绍完了以RCNN为代表的基于Region Proposal的目标检测算法（RCNN，SPP-NET，Fast-RCNN，Faster-RCNN），更多实现细节可以阅读原论文和代码。由于篇幅原因，接下来会另起一篇文章来介绍以YoLo为代表的基于回归方法的深度学习目标检测算法（YoLo，SSD）。
 
 
 
