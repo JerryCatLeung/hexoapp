@@ -1,5 +1,5 @@
 ---
-title: 卷积神经网络CNN入门
+title: CNN卷积神经网络入门
 date: 2017-12-20 19:08:03
 tags: [AI, Deep learning, CNN]
 ---
