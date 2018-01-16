@@ -1,18 +1,17 @@
 ---
 title: CNN经典神经网络模型 | 目标检测
 date: 2018-01-08 17:21:46
-tags: [AI, Deep learning, CNN, RCNN, Fast R-CNN, Faster R-CNN, YOLO, Object detection]
+tags: [AI, Deep learning, CNN, RCNN, Fast R-CNN, Faster R-CNN, Object detection]
 ---
 目标检测是计算机视觉领域一个经典问题，本文主要涉及该领域的经典模型：RCNN, Fast R-CNN, Faster R-CNN, YOLO，SSD。
 
 <!--more-->
 
 - [RCNN - Rich feature hierarchies for accurate object detection and semantic segmentation](https://arxiv.org/abs/1311.2524) (2014) 
+- [SSP-NET](https://arxiv.org/abs/1406.4729) (2014)
 - [Fast R-CNN](https://arxiv.org/abs/1504.08083) (2015)
 - [Faster R-CNN: Towards Real-Time Object Detection with Region Proposal Networks](https://arxiv.org/abs/1506.01497) (2016)
-- [YoLo - You Only Look Once: Unified, Real-Time Object Detection](https://arxiv.org/abs/1506.02640) (2016)
-- [SSD: Single Shot MultiBox Detector
-](https://arxiv.org/abs/1512.02325) (2016)
+
 
 从下图可以大概看到当前目标检测领域的研究路径，目标分类 -> 目标分类+定位 -> 目标检测 -> 实例分隔，由简到难，由浅到深。当前的目标检测总的发展方向主要就是两条线，一条线是提高检测的精度、另一条线是提高检测的速度（[参考](https://www.zhihu.com/question/34223049/answer/160336559)）。
 ![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_classic_model%2Fobjectdetection.png@!laphiler)
