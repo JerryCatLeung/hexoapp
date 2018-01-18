@@ -19,6 +19,7 @@ paper:
 code:
 
 - [caffe实现：caffe-yolo9000](https://github.com/choasUp/caffe-yolo9000)
+- [caffe实现：ssd](https://github.com/weiliu89/caffe/tree/ssd)
 
 ## YoLo
 
@@ -105,5 +106,58 @@ YOLO检测网络包括24个卷积层和2个全连接层，如下图所示。其�
 
 ## SSD
 
+上半部分介绍的YoLo有一些缺陷：每个网格只预测一个物体，容易造成漏检；对于物体的尺度相对比较敏感，对于尺度变化较大的物体泛化能力较差。针对这两个方面SSD都有所改进，同时兼顾了 mAP 和实时性的要求（见本文开始的图1，几个模型对比）。在满足实时性的条件下，接近state of art的结果。作者的思路就是Faster R-CNN+YOLO，利用YOLO的思路和Faster R-CNN的anchor box的思想。[参考](http://blog.csdn.net/u010167269/article/details/52563573)
 
+### 网络结构
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_object_detection2%2Fssd-model.png@!laphiler)
+
+该论文采用 VGG16 的基础网络结构(作者用的是D这个模型进行修改的)，使用前面的前 5 层，然后利用 astrous 算法将 fc6 和 fc7 层转化成两个卷积层。再格外增加了 3 个卷积层，和一个 average pool层。不同层次的 feature map 分别用于 default box 的偏移以及不同类别得分的预测（惯用思路：使用通用的结构(如前5个conv等)作为基础网络，然后在这个基础上增加其他的层），最后通过nms得到最终的检测结果。
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_object_detection2%2FVGG_model.png@!laphiler)
+
+**总结一下**，SSD 模型的最开始部分，本文称作 base network，是用于图像分类的标准架构。在 base network 之后，本文添加了额外辅助的网络结构：
+
+- **Multi-scale feature maps for detection**
+在基础网络结构后，添加了额外的卷积层，这些卷积层的大小是逐层递减的，可以在多尺度下进行 predictions。
+- **Convolutional predictors for detection**
+每一个添加的特征层（或者在基础网络结构中的特征层），可以使用一系列 convolutional filters，去产生一系列固定大小的 **predictions**，具体见 Fig.2。对于一个大小为 {% math %} m×n {% endmath %}，具有 {% math %} p {% endmath %} 通道的feature map层，使用的 convolutional filters 就是 {% math %} 3×3×p {% endmath %} 的 kernels。产生的 predictions，那么就是归属类别的一个得分，要么就是相对于 default box coordinate 的 shape offsets。 
+在每一个 {% math %} m×n {% endmath %} 的特征图位置上，使用上面的 3×3 的 kernel，会产生一个输出值。**bounding box offset** 值是输出的 default box 与此时 feature map location 之间的相对距离（YOLO 架构则是用一个全连接层来代替这里的卷积层）。
+- **Default boxes and aspect ratios**
+每一个 box 相对于与其对应的 feature map cell 的位置是固定的。 在每一个 feature map cell 中，我们要 predict 得到的 box 与 default box 之间的 offsets，以及每一个 box 中包含物体的 score（每一个类别概率都要计算出）。 
+因此，对于一个位置上的 {% math %} k {% endmath %} 个boxes 中的每一个 box，我们需要计算出 c 个类，每一个类的 score，还有这个 box 相对于 它的默认 box 的 {% math %} 4 {% endmath %} 个偏移值（offsets）。于是，在 feature map 中的每一个 feature map cell 上，就需要有 {% math %} (c+4)×k {% endmath %} 个 filters。对于一张 {% math %} m×n {% endmath %} 大小的 feature map，即会产生 {% math %} (c+4)×k×m×n {% endmath %} 个输出结果。
+
+#### default boxes & feature map cell
+
+- **feature map cell**就是将**feature map**切分成 8×8 或者 4×4 之后的一个个格子；
+- 而**default box**就是每一个格子上，一系列固定大小的 box，即图中虚线所形成的一系列 boxes。
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_object_detection2%2Fssd_box.png@!laphiler)
+
+#### 模型flow
+
+这些增加的卷积层的 feature map 的大小变化比较大，允许能够检测出不同尺度下的物体： 在低层的feature map,感受野比较小，高层的感受野比较大，在不同的feature map进行卷积，可以达到多尺度的目的。观察YoLo，后面存在两个全连接层，全连接层以后，每一个输出都会观察到整幅图像，并不是很合理。但是SSD去掉了全连接层，每一个输出只会感受到目标周围的信息，包括上下文。这样来做就增加了合理性。并且不同的feature map,预测不同宽高比的图像，这样比YOLO增加了预测更多的比例的box。（下图横向的流程）
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_object_detection2%2Fssd-model-detail.png@!laphiler)
+
+### 训练
+
+#### 损失函数
+
+这个与Faster R-CNN中的RPN是一样的，不过RPN是预测box里面有object或者没有，所以，没有分类，SSD直接用的softmax分类。location的损失，还是一样，都是用predict box和default box/Anchor的差 与 ground truth box和default box/Anchor的差 进行对比，求损失。
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_object_detection2%2Fssd_loss.png@!laphiler)
+
+#### 训练策略
+
+监督学习的训练关键是人工标注的label。对于包含default box(在Faster R-CNN中叫做anchor)的网络模型（如： YOLO,Faster R-CNN, MultiBox）关键点就是如何把 标注信息(ground true box,ground true category)映射到（default box上）
+
+- 正负样本： 给定输入图像以及每个物体的 ground truth,首先找到每个ground true box对应的default box中IOU最大的作为（与该ground true box相关的匹配）正样本。然后，在剩下的default box中找到那些与任意一个ground truth box 的 IOU 大于 0.5的default box作为（与该ground true box相关的匹配）正样本。 一个 ground truth 可能对应多个 正样本default box 而不再像MultiBox那样只取一个IOU最大的default box。其他的作为负样本（每个default box要么是正样本box要么是负样本box）。下图的例子是：给定输入图像及 ground truth，分别在两种不同尺度(feature map 的大小为 8 * 8，4 * 4)下的匹配情况。有两个 default box 与猫匹配（8 * 8），一个 default box 与狗匹配（4 * 4）。
+
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_object_detection2%2Fssd-positive-sample.jpg@!laphiler)
+
+该论文是在 ImageNet 分类和定位问题上的已经训练好的 VGG16 模型中 fine-tuning 得到，使用 SGD，初始学习率为 {% math %} 10^{-3} {% endmath %}, 冲量为 0.9，权重衰减为 0.0005，batchsize 为 32。不同数据集的学习率改变策略不同。新增加的卷积网络采用 xavier 的方式进行初始化
+
+- Default Box 的生成：
+![](http://xiaoluban.cdn.bcebos.com/laphiler%2FCNN_object_detection2%2Fssd-default-box.png@!laphiler)
 
